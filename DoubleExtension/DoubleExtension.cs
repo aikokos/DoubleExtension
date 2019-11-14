@@ -9,21 +9,21 @@ namespace DoubleExtension
         public static string ConvertToBinaryIntegerPart(double number)
         {
 
-            int onlyIntegerPart = 0;
+            long onlyIntegerPart = 0;
 
-            try
-            {
-                onlyIntegerPart = Convert.ToInt32(Math.Floor(number));
-            } catch (Exception e)
-            {
-                
-            };
+            /* try
+             {
+                 onlyIntegerPart = Convert.ToInt64(Math.Floor(number));
+             } catch (Exception e)
+             */
+            onlyIntegerPart = Convert.ToInt64(Math.Floor(number));
+           // };
 
 
             string converted = string.Empty;
             while (onlyIntegerPart > 1)
             {
-                int oneDigit = onlyIntegerPart % 2;
+                long oneDigit = onlyIntegerPart % 2;
                 converted += oneDigit.ToString();
                 onlyIntegerPart = onlyIntegerPart / 2;
             }
@@ -43,20 +43,20 @@ namespace DoubleExtension
         public static string ConvertToBinaryFractionPart(double number)
         {
             string converted = string.Empty;
-            double fraction = number - (int)number;
-            int onlyIntegerPart = 10;
+            double fraction = number - Convert.ToInt64(number);
+            long onlyIntegerPart = 10;
             while (fraction != 0 && converted.Length < 63)
             {
                 fraction = fraction * 2;
                 try
                 {
-                    onlyIntegerPart = Convert.ToInt32(Math.Floor(fraction));
+                    onlyIntegerPart = Convert.ToInt64(Math.Floor(fraction));
                 } catch (Exception e)
                 {
                     
                 }
                 converted += onlyIntegerPart.ToString();
-                fraction = fraction - (int)fraction;
+                fraction = fraction - (long)fraction;
             }
             return converted;
         }
@@ -70,7 +70,7 @@ namespace DoubleExtension
             return ConvertToBinaryIntegerPart(number);
         }
 
-        public static (int, string) GetScientificNotation(string binaryNumber)
+        public static (int, string) GetScientificNotation(double number, string binaryNumber)
         {
             int exponent;
             string mantissa;
@@ -87,17 +87,47 @@ namespace DoubleExtension
                 mantissa = binaryNumber.Substring(1, binaryNumber.Length - 1);
                 exponent = binaryNumber.Length - 1;
             }
-            exponent += offset;
+            if (Math.Abs(number) > 1)
+            {
+                exponent += offset;
+            }
+            
             return (exponent, mantissa);
         }
 
         public static string GetIEEE754(this double number)
-        {
+
+        { 
             string numberInIEEE754 = string.Empty;
+             if (number == double.MinValue)
+            {
+                numberInIEEE754 = "1111111111101111111111111111111111111111111111111111111111111111";
+                return numberInIEEE754;
+            }
+            if (number == double.MaxValue)
+            {
+                numberInIEEE754 = "0111111111101111111111111111111111111111111111111111111111111111";
+                return numberInIEEE754;
+            }
+            if (Double.IsNaN(number))
+            {
+                numberInIEEE754 = "1111111111111000000000000000000000000000000000000000000000000000";
+                return numberInIEEE754;
+            }
+            if (number == double.NegativeInfinity)
+            {
+                numberInIEEE754 = "1111111111110000000000000000000000000000000000000000000000000000";
+                return numberInIEEE754;
+            } 
+            if (number == double.PositiveInfinity)
+            {
+                numberInIEEE754 = "0111111111110000000000000000000000000000000000000000000000000000";
+                return numberInIEEE754;
+            }
             // Step 1 - Convert given number to binary
             string binaryNumber = ConvertDecimalToBinary(Math.Abs(number));
             // Step 2 - Represent given number in scientific notation
-            var names = GetScientificNotation(binaryNumber);
+            var names = GetScientificNotation(number, binaryNumber);
             // Step 3 - Get IEEE754 Double precision
             string binaryExponent = ConvertDecimalToBinary(names.Item1);
             string mantissa = names.Item2;
@@ -116,6 +146,36 @@ namespace DoubleExtension
                 }
             }
             numberInIEEE754 = sign + binaryExponent + mantissa;
+            while  (numberInIEEE754.Length < 64)
+            {
+                
+                numberInIEEE754 += '0';
+            }
+
+            if (number == double.MinValue)
+            {
+                numberInIEEE754 = "1111111111101111111111111111111111111111111111111111111111111111";
+            }
+            if (number == double.MaxValue)
+            {
+                numberInIEEE754 = "0111111111101111111111111111111111111111111111111111111111111111";
+            }
+            if (number == double.Epsilon)
+            {
+                numberInIEEE754 = "0000000000000000000000000000000000000000000000000000000000000001";
+            }
+            if (number == double.NaN)
+            {
+                numberInIEEE754 = "1111111111111000000000000000000000000000000000000000000000000000";
+            }
+            if (number == double.NegativeInfinity)
+            {
+                numberInIEEE754 = "1111111111110000000000000000000000000000000000000000000000000000";
+            }
+            if (number == double.PositiveInfinity)
+            {
+                numberInIEEE754 = "0111111111110000000000000000000000000000000000000000000000000000";
+            }
             return numberInIEEE754;
         }
     }
